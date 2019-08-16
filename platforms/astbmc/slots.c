@@ -33,6 +33,35 @@ static const struct slot_table_entry *match_slot_phb_entry(struct phb *phb)
 			prerror("SLOT: Bad DEV entry type in table !\n");
 			continue;
 		}
+		/* Override the phb_idx with opal_id & the 0xf mask
+		 * -------------------------------------------------------------------
+		 * | phb_idx | opal_id | (new) phb_idx = opal_id          | location |
+		 * |  0 (P0) |     0   |          0                       |      0x0 |
+		 * |  1 (P0) |     1   |          1                       |      0x1 |
+		 * |  2 (P0) |     2   |          2                       |      0x2 |
+		 * |  3 (P0) |     3   |          3                       |      0x3 |
+		 * |  4 (P0) |     4   |          4                       |      0x4 |
+		 * |  5 (P0) |     5   |          5                       |      0x5 |
+		 * -------------------------------------------------------------------
+		 * |  0 (P0) |     8   |          8    (p0_ocapi_slot_bot)|      0x8 |
+		 * |  0 (P0) |     9   |          9    (p0_ocapi_slot_top)|      0x9 |
+		 * |  0 (P1) | 16(0x10)|      16(0x10) (p1_ocapi_slot_bot)|  0x80010 |
+		 * |  0 (P1) | 17(0x11)|      17(0x11) (p1_ocapi_slot_top)|  0x80011 |
+		 * --- if (opal_id >=0x30) -------------------------------------------
+		 * | phb_idx | opal_id | (new) phb_idx = (opal_id & 0xf)  | location |
+		 * |  0 (P1) | 48(0x30)|        0x0                       |  0x80000 |
+		 * |  1 (P1) | 49(0x31)|        0x1                       |  0x80001 |
+		 * |  2 (P1) | 50(0x32)|        0x2                       |  0x80002 |
+		 * |  3 (P1) | 51(0x33)|        0x3                       |  0x80003 |
+		 * |  4 (P1) | 52(0x34)|        0x4                       |  0x80004 |
+		 * |  5 (P1) | 53(0x35)|        0x5                       |  0x80005 |
+		 * -------------------------------------------------------------------
+		 */
+		if ( phb->opal_id >= 0x30 ){
+			phb_idx = (phb->opal_id & 0xf); //mask 0xf for P1
+		}else{
+			phb_idx = phb->opal_id;
+		}
 		if (ent->location == ST_LOC_PHB(chip_id, phb_idx))
 			return ent;
 	}

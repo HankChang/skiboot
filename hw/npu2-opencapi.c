@@ -1717,7 +1717,19 @@ static void setup_device(struct npu2_dev *dev)
 			prlog(PR_ERR, "OCAPI: Cannot create PHB slot\n");
 		}
 	}
-	pci_register_phb(&dev->phb_ocapi, OPAL_DYNAMIC_PHB_ID);
+	/*
+	 * Hack the PHB IDs from Dynamic to Static with its chip_id and brick_index
+	 * Offset +6 for reserving PHB0~PHB5 for the possible native PCIe PHB IDs
+	 * Note that assuming chip_id of P0 would be 0, and P1's chip_id would be 8
+	 * so that means:
+	 *
+	 * P0 OCAPI bottom connector-> chip_id[0]+brick_index[2]+6 ->PHB_ID=8 =0x08
+	 * P0 OCAPI top connector   -> chip_id[0]+brick_index[3]+6 ->PHB_ID=9 =0x09
+	 * P1 OCAPI bottom connector-> chip_id[8]+brick_index[2]+6 ->PHB_ID=16=0x10
+	 * P1 OCAPI top connector   -> chip_id[8]+brick_index[3]+6 ->PHB_ID=17=0x11
+	 *
+	 */
+	pci_register_phb(&dev->phb_ocapi, (dev->npu->chip_id +dev->brick_index +6));
 	return;
 }
 

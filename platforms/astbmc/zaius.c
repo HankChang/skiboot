@@ -87,11 +87,49 @@ ST_PLUGGABLE(pe4_slot, "PE4");
 ST_PLUGGABLE(mezz_slot_a, "MEZZ A");
 ST_PLUGGABLE(mezz_slot_b, "MEZZ B");
 
+/* Setup Slot Table Entry for OpenCAPI Devices (with label name) */
+static const struct slot_table_entry p0_ocapi_slot_top[] = {
+	{
+		.etype = st_npu_slot,
+		.location = ST_LOC_DEVFN(0,0),
+		.name = "CP0_NV_TOP",
+	},
+	{ .etype = st_end },
+};
+static const struct slot_table_entry p0_ocapi_slot_bot[] = {
+	{
+		.etype = st_npu_slot,
+		.location = ST_LOC_DEVFN(0,0),
+		.name = "CP0_NV_BOT",
+	},
+	{ .etype = st_end },
+};
+static const struct slot_table_entry p1_ocapi_slot_top[] = {
+	{
+		.etype = st_npu_slot,
+		.location = ST_LOC_DEVFN(0,0),
+		.name = "CP1_NV_TOP",
+	},
+	{ .etype = st_end },
+};
+static const struct slot_table_entry p1_ocapi_slot_bot[] = {
+	{
+		.etype = st_npu_slot,
+		.location = ST_LOC_DEVFN(0,0),
+		.name = "CP1_NV_BOT",
+	},
+	{ .etype = st_end },
+};
+
 static const struct slot_table_entry zaius_phb_table[] = {
 	ST_PHB_ENTRY(0, 0, pe1_slot), /* PE1 is on PHB0 */
 	ST_PHB_ENTRY(0, 1, pe0_slot), /* PE0 is on PHB1 */
 /*	ST_PHB_ENTRY(0, 2, builtin_sata), */
 	ST_PHB_ENTRY(0, 3, pe2_slot), /* un-bifurcated 16x */
+
+	/* Setup Slot Table Entry for OpenCAPI Devices for P0 */
+	ST_PHB_ENTRY(0, 0x8 , p0_ocapi_slot_bot), /* P0 OCAPI Bottom Connector */
+	ST_PHB_ENTRY(0, 0x9 , p0_ocapi_slot_top), /* P0 OCAPI Top Connector */
 
 	ST_PHB_ENTRY(8, 0, pe3_slot),
 	ST_PHB_ENTRY(8, 1, pe4_slot),
@@ -115,6 +153,9 @@ static const struct slot_table_entry zaius_phb_table[] = {
 	ST_PHB_ENTRY(8, 4, mezz_slot_b),
 /*	ST_PHB_ENTRY(8, 5, builtin_bmc), */
 
+	/* Setup Slot Table Entry for OpenCAPI Devices for P1 */
+	ST_PHB_ENTRY(8, 0x10 , p1_ocapi_slot_bot), /* P1 OCAPI Bottom Connector */
+	ST_PHB_ENTRY(8, 0x11 , p1_ocapi_slot_top), /* P1 OCAPI Top Connector */
 	{ .etype = st_end },
 };
 
