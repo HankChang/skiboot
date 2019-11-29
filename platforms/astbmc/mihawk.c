@@ -14,8 +14,14 @@
 #include <npu2.h>
 #include <pci.h>
 #include <pci-cfg.h>
+#include <phb4.h>
+#include <phb4-regs.h>
+#include <io.h>
 
 #include "astbmc.h"
+
+/* Define a token for MIHAWK_ENFORCE_RISER_A_GEN3_ONLY (0=OFF; 1=ON;) */
+#define MIHAWK_ENFORCE_RISER_A_GEN3_ONLY 1
 
 /* nvme backplane slots */
 static const struct slot_table_entry hdd_bay_slots[] = {
@@ -34,6 +40,45 @@ static const struct slot_table_entry hdd_bay_slots[] = {
 static void mihawk_get_slot_info(struct phb *phb, struct pci_device *pd)
 {
 	const struct slot_table_entry *ent = NULL;
+
+	if (MIHAWK_ENFORCE_RISER_A_GEN3_ONLY){ // token value: 0=OFF; 1=ON;
+		uint64_t val;
+		struct phb4 *p = phb_to_phb4(phb);
+
+		if ( p->pec == 2 ){ // Mihawk's PCIe Risers can only be on the PEC2
+			if ( !(pd->dev_type == PCIE_TYPE_SWITCH_UPPORT &&
+					pd->vdid == 0x11f84052) ){
+				/*
+				 * Enforce specific Riser (A) speed to Gen3 ONLY
+				 *
+				 * Currently, Mihawk only has two types of PCIe Risers for PEC2
+				 * 1. Riser-A (redirect connector, might have some SI concerns)
+				 * 2. Riser-F (connected with a Microsemi Gen4 Switch on it)
+				 *
+				 * So, if not seeing the Microsemi Gen4 Switch vdid=0x11f84052
+				 * which means it's not Riser-F, it should be Riser-A installed
+				 */
+				prlog(PR_INFO, "Mihawk: Detected Riser-F NOT Installed...    "
+				"(chip_id=%d, pec=%d)\n", p->chip_id, p->pec);
+				val = in_be64(p->regs + PHB_PCIE_SCR);
+				prlog(PR_INFO, "Mihawk: Current PCIE_SCR: 0x%016llx "
+						"(chip_id=%d, pec=%d)\n", val, p->chip_id, p->pec);
+
+				/* Override/Hack the PHB_PCIE_SCR_MAXLINKSPEED to Gen3 */
+				val = SETFIELD(PHB_PCIE_SCR_MAXLINKSPEED, val, 3);
+				prlog(PR_INFO, "Mihawk: Enforce the Riser Speed to Gen3 ONLY "
+						"(chip_id=%d, pec=%d)\n", p->chip_id, p->pec);
+				out_be64(p->regs + PHB_PCIE_SCR, val);
+				prlog(PR_INFO, "Mihawk: New PCIE_SCR: 0x%016llx     "
+						"(chip_id=%d, pec=%d)\n",
+				       in_be64(p->regs + PHB_PCIE_SCR), p->chip_id, p->pec);
+			}else{
+				/* Do nothing and allow the default PHB speed upto Gen4 */
+				prlog(PR_INFO, "Mihawk: Detected Riser-F Installed.          "
+						"(chip_id=%d, pec=%d)\n", p->chip_id, p->pec);
+			}
+		}
+	}
 
 	if (!pd || pd->slot)
 		return;
